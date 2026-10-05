@@ -14,6 +14,10 @@ it.
 - **Releases are built by CI.** A release's PBW is built by this
   repository's CI from the tagged source and attached to the GitHub release;
   Gravel pins its digest and downloads it from there.
+- **Builds go through `tools/build.sh`.** It pins the Pebble SDK, the
+  compiler and the build's Python packages by digest; a change to any of
+  them updates the pin and, where the reason is not "current stable",
+  `KNOWN_ISSUES.md`. `make test` runs the host tests and a build check.
 - **Minimal new dependencies.** Every new or upgraded dependency, the Pebble
   SDK and toolchain included, is vetted before code is written against it:
   actively maintained, current stable version, no known advisories,

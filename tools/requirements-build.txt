@@ -1,0 +1,6 @@
+# Python packages the Pebble SDK's build imports (sdk-core requirements.txt), pinned by hash.
+# freetype-py is not installed: tools/stubs/freetype stands in for it.
+sh==2.4.0 \
+    --hash=sha256:98eba32eeb5ecdd310668737d7461e668afc42b273550d0bc198a1c5c2b1ab36
+pypng==0.20220715.0 \
+    --hash=sha256:4a43e969b8f5aaafb2a415536c1a8ec7e341cd6a3f957fd5b5f32a4cfeed902c

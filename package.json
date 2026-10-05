@@ -1,0 +1,29 @@
+{
+  "name": "gravel-watchapp",
+  "author": "Gravel",
+  "version": "0.1.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Notebook",
+    "uuid": "d09c758e-a9ac-4ce7-be23-84c6c6caef2b",
+    "sdkVersion": "3",
+    "enableMultiJS": false,
+    "targetPlatforms": ["basalt", "chalk", "diorite", "emery", "flint", "gabbro"],
+    "watchapp": {
+      "watchface": false
+    },
+    "messageKeys": [],
+    "resources": {
+      "media": [
+        {
+          "type": "png",
+          "name": "MENU_ICON",
+          "file": "images/menu_icon.png",
+          "menuIcon": true
+        }
+      ]
+    }
+  }
+}
