@@ -25,6 +25,28 @@ static void test_quick_launch_is_the_only_launch_that_records(void) {
   }
 }
 
+static void test_a_cancel_blocks_recording_until_it_settles_and_holds_back_until_the_hold_ends(void) {
+  FlowCancel cancel = {0};
+  CHECK(flow_may_record(&cancel));
+  CHECK(flow_back_leaves(&cancel));
+
+  flow_cancel_sent(&cancel);
+  CHECK(!flow_may_record(&cancel));
+  CHECK(!flow_back_leaves(&cancel));
+
+  CHECK(flow_cancel_hold_over(&cancel));
+  CHECK(flow_back_leaves(&cancel));
+  CHECK(!flow_may_record(&cancel));
+  CHECK(!flow_cancel_settled(&cancel));
+  CHECK(flow_may_record(&cancel));
+
+  flow_cancel_sent(&cancel);
+  CHECK(flow_cancel_settled(&cancel));
+  CHECK(flow_may_record(&cancel));
+  CHECK(flow_back_leaves(&cancel));
+  CHECK(!flow_cancel_hold_over(&cancel));
+}
+
 static void test_success_shows_the_phone_text(void) {
   CHECK_TEXT(flow_outcome(FLOW_STATUS_SUCCESS, "Saved", true), "Saved");
   CHECK_TEXT(flow_outcome(FLOW_STATUS_SUCCESS, "Couldn't save: too many recordings waiting", true),
@@ -147,6 +169,7 @@ int main(void) {
   test_every_failure_without_a_phone_says_so();
   test_success_and_cancel_do_not_depend_on_the_phone_connection();
   test_leaving_closes_after_quick_launch_and_returns_to_the_menu_otherwise();
+  test_a_cancel_blocks_recording_until_it_settles_and_holds_back_until_the_hold_ends();
   test_copy_keeps_short_text_whole();
   test_copy_cuts_ascii_at_the_buffer_size();
   test_copy_never_ends_inside_a_utf8_character();

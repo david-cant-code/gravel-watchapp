@@ -21,6 +21,22 @@ enum {
 
 enum { FLOW_LAUNCH_QUICK_LAUNCH = 5 };
 
+// The contract with Gravel: the key of the app's one message, sent when BACK ends a recording or the wait for its
+// answer. Gravel drops the recording when the message arrives within its short wait after the recording ends.
+enum { FLOW_CANCEL_KEY = 1 };
+
+// How long a cancel holds a blank screen with a BACK press ignored, so leaving does not drop the message unsent:
+// PebbleOS drops an exiting app's unsent messages (PebbleOS 70ed290, src/fw/process_management/app_manager.c,
+// prv_app_cleanup).
+#define FLOW_CANCEL_HOLD_MS 2000
+
+// A cancel on its way to the phone. No recording starts until the message settles (ACK, NACK or the firmware's
+// timeout), since Gravel applies a cancel to whatever recording is in progress.
+typedef struct {
+  bool in_flight;
+  bool holding;
+} FlowCancel;
+
 typedef enum {
   FLOW_SHOW,       // show text on the status screen for show_ms, then leave it
   FLOW_CANCELLED,  // the user backed out of the recording: leave at once, nothing to show
@@ -40,6 +56,18 @@ typedef enum {
 bool flow_is_quick_launch(int launch_reason);
 
 FlowLeave flow_leave_action(bool quick_launch);
+
+void flow_cancel_sent(FlowCancel *cancel);
+
+// The message settled; returns whether the held screen is left now.
+bool flow_cancel_settled(FlowCancel *cancel);
+
+// The hold ran out; returns whether the held screen is left now.
+bool flow_cancel_hold_over(FlowCancel *cancel);
+
+bool flow_may_record(const FlowCancel *cancel);
+
+bool flow_back_leaves(const FlowCancel *cancel);
 
 // The phone's answer is shown as it arrives: the phone decides the wording ("Saved", or why it refused).
 // Any failure while the watch has no phone connection says so.

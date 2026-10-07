@@ -26,6 +26,32 @@ FlowLeave flow_leave_action(bool quick_launch) {
   return quick_launch ? FLOW_LEAVE_CLOSE_APP : FLOW_LEAVE_TO_MENU;
 }
 
+void flow_cancel_sent(FlowCancel *cancel) {
+  cancel->in_flight = true;
+  cancel->holding = true;
+}
+
+bool flow_cancel_settled(FlowCancel *cancel) {
+  bool leave = cancel->holding;
+  cancel->in_flight = false;
+  cancel->holding = false;
+  return leave;
+}
+
+bool flow_cancel_hold_over(FlowCancel *cancel) {
+  bool leave = cancel->holding;
+  cancel->holding = false;
+  return leave;
+}
+
+bool flow_may_record(const FlowCancel *cancel) {
+  return !cancel->in_flight;
+}
+
+bool flow_back_leaves(const FlowCancel *cancel) {
+  return !cancel->holding;
+}
+
 uint32_t flow_show_ms(const char *text) {
   size_t chars = 0;
   for (const char *c = text; c && *c; c++) {
