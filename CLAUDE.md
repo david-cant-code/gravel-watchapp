@@ -17,7 +17,11 @@ it.
 - **Builds go through `tools/build.sh`.** It pins the Pebble SDK, the
   compiler and the build's Python packages by digest; a change to any of
   them updates the pin and, where the reason is not "current stable",
-  `KNOWN_ISSUES.md`. `make test` runs the host tests and a build check.
+  `KNOWN_ISSUES.md`. `make test` runs the host tests and build checks.
+- **Builds must be reproducible.** The same commit must give the same PBW,
+  byte for byte, on any machine `tools/build.sh` supports. `make test`
+  checks it across folders and build times on one machine only (see
+  `KNOWN_ISSUES.md`); a change that breaks it is fixed before it is merged.
 - **Minimal new dependencies.** Every new or upgraded dependency, the Pebble
   SDK and toolchain included, is vetted before code is written against it:
   actively maintained, current stable version, no known advisories,

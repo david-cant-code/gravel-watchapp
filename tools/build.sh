@@ -5,7 +5,31 @@
 set -eu
 
 root=$(cd "$(dirname "$0")/.." && pwd -P)
+# A directory inside the checkout, not a link: only paths under the checkout are mapped out of the PBW, and the
+# compiler records its own resolved location.
 cache=$root/.sdk
+
+# The time stamped into the PBW: SOURCE_DATE_EPOCH if set, else the commit's time. It must lie in 1980-2038: zip
+# entries cannot record earlier times, and Gravel reads the PBW's times as signed 32-bit numbers.
+if [ -z "${SOURCE_DATE_EPOCH:-}" ]; then
+  [ -e "$root/.git" ] || { echo "not a git checkout: set SOURCE_DATE_EPOCH to the commit's time" >&2; exit 1; }
+  head=$(env -u GIT_DIR -u GIT_WORK_TREE git -C "$root" log -1 --no-show-signature --format='%ct %h' HEAD)
+  SOURCE_DATE_EPOCH=${head% *}
+  stamp_source="commit ${head#* }"
+  [ -z "$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git -C "$root" status --porcelain)" ] \
+    || echo "warning: uncommitted changes, so this PBW may differ from a build of $stamp_source" >&2
+else
+  stamp_source=SOURCE_DATE_EPOCH
+fi
+case $SOURCE_DATE_EPOCH in
+  *[!0-9]* | 0*) in_range=no ;;
+  ????????? | ??????????) [ "$SOURCE_DATE_EPOCH" -ge 315532800 ] && [ "$SOURCE_DATE_EPOCH" -le 2147483647 ] \
+    && in_range=yes || in_range=no ;;
+  *) in_range=no ;;
+esac
+[ "$in_range" = yes ] \
+  || { echo "SOURCE_DATE_EPOCH must be a whole number from 315532800 to 2147483647, no leading zeros" >&2; exit 1; }
+echo "stamping the PBW with $SOURCE_DATE_EPOCH ($stamp_source)"
 
 sdk_url=https://sdk.repebble.com/releases/4.33.1/sdk-core.tar.gz
 sdk_sha256=a4d8a64f9a82b5e86006c5042852c9921461519779c31a45b0483a5d1ce8e875
@@ -70,13 +94,20 @@ fi
 # The SDK's configure step reads NODE_PATH/.bin even when the app has no JavaScript.
 mkdir -p "$cache/node_modules/.bin"
 
-# waf takes CC, CFLAGS, LDFLAGS and the like from the environment, so it runs with an allow-list only.
+# waf takes CC, CFLAGS, LDFLAGS and the like from the environment, so it runs with an allow-list only. The SDK does
+# not redo its time-stamping steps when only the time changes (pebble_sdk_gcc.gen_inject_metadata_rule), so every
+# build starts from an empty build/. PYTHONHASHSEED=0 fixes, for a given Python version, the order of appinfo.json's
+# capabilities, which the SDK writes from a set (pebble_sdk._write_appinfo_json_file; both in sdk-core 4.33.1
+# waflib extras).
 cd "$root"
+rm -rf build
 env -i HOME="$HOME" LANG=C.UTF-8 \
   PATH="$toolchain/arm-none-eabi/bin:$PATH" \
   PYTHONPATH="$root/tools/stubs" \
+  PYTHONHASHSEED=0 \
+  SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
   NODE_PATH="$cache/node_modules" \
   NOCLIMB=1 \
   "$venv/bin/python" "$sdk/sdk-core/pebble/waf" configure build
-cp "build/$(basename "$root").pbw" build/notebook.pbw
+"$venv/bin/python" -I tools/normalize_pbw.py "build/$(basename "$root").pbw" build/notebook.pbw "$SOURCE_DATE_EPOCH"
 echo "built build/notebook.pbw"

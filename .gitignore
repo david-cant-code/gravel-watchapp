@@ -1,4 +1,5 @@
 build/
+build-test/
 .sdk/
 .lock-waf*
 __pycache__/
