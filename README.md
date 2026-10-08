@@ -26,8 +26,10 @@ own [license terms](https://developer.repebble.com/legal/sdk-license/).
 `make test` runs the unit tests for the app's logic on the build machine,
 which needs a C compiler and Python 3, and then a full build that checks
 the build ignores compiler settings in the environment, which needs
-everything `tools/build.sh` needs. Behavior that needs a watch is checked
-on one.
+everything `tools/build.sh` needs. A GitHub Actions workflow runs `make
+test` on pushes to this repository's branches and is set to skip pushes
+that change only `.md` files. Behavior that needs a watch is checked on
+one.
 
 ## License
 
