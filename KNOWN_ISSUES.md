@@ -20,10 +20,10 @@
   executable.** The layout comes from the SDK's linker script
   (`pebble/common/pebble_app.ld.template` in sdk-core 4.33.1), which puts
   code and data in one `rwx` memory region.
-- **Reproducible builds are compared on one machine only.** `make test`
-  builds the app from three paths on the machine running it and requires
-  the same PBW from each. No test compares builds from different machines,
-  so a dependency on the build machine shows up only when a rebuild
-  elsewhere does not match. One is known: the SDK writes the app's
-  capabilities into `appinfo.json` in an order that can differ between
+- **`make test` compares builds on one machine only.** It builds the app
+  from three paths on the machine running it and requires the same PBW from
+  each. No test compares builds from different machines, so a dependency on
+  the build machine shows up only when a rebuild elsewhere, such as the
+  release check on GitHub, does not match. One is known: the SDK writes the
+  app's capabilities into `appinfo.json` in an order that can differ between
   Python versions. The app declares no capabilities today.

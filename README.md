@@ -34,14 +34,35 @@ rather than compressed with the build machine's zlib library.
 ## Testing
 
 `make test` runs the unit tests for the app's logic and the PBW rewrite on
-the build machine, which needs a C compiler and Python 3, and then full
-builds that check the build ignores compiler settings in the environment,
-takes its time from `SOURCE_DATE_EPOCH` or the commit, and gives the same
-PBW from three folders, seconds apart; those need everything
-`tools/build.sh` needs, plus ssh-keygen. A GitHub Actions workflow runs `make
-test` on pushes to this repository's branches and is set to skip pushes
-that change only `.md` files. Behavior that needs a watch is checked on
-one.
+the build machine, which needs a C compiler and Python 3. It then runs full
+builds, which need everything `tools/build.sh` needs plus ssh-keygen: they
+check that the build ignores compiler settings in the environment, takes
+its time from `SOURCE_DATE_EPOCH` or the commit and gives the same PBW from
+three folders, seconds apart, and that `tools/verify_release.sh` refuses
+each malformed, unsigned, wrongly signed or mismatched tag its test makes.
+A GitHub Actions workflow runs `make test` on pushes to this repository's
+branches and is set to skip pushes that change only `.md` files. Behavior
+that needs a watch is checked on one.
+
+## Releases
+
+A release is a tag named after the version in `package.json`, MAJOR.MINOR
+(for example `0.1`), whose message gives the SHA-256 of the release's
+`notebook.pbw`, signed with a touch on an Ed25519 security key listed in
+`tools/allowed_signers`. The maintainer builds that file and attaches it to
+the GitHub release. A GitHub Actions workflow rebuilds a pushed release tag
+and fails if its build differs.
+
+To check a release yourself, check out its tag and run
+`tools/verify_release.sh <tag>`, which needs what `make test` needs. It
+checks the tag's signature against `tools/allowed_signers` and that the
+security key recorded a touch, that the tag is on the checked-out commit and
+matches `package.json`, and then builds the tagged commit's files, as git
+stores them, in a folder of their own, passing only if the PBW has the
+SHA-256 the tag gives. Then compare that SHA-256 with the file attached to
+the release. The script and `tools/allowed_signers` come from the tag being
+checked, so read them at that tag and compare the key with one you trust
+from elsewhere.
 
 ## License
 

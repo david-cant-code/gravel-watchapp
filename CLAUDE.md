@@ -11,9 +11,14 @@ it.
   source share a contract: the watch app's UUID, its message keys, and the
   outcome codes the phone sends back. A change to that contract lands in
   both repositories, and Gravel decides which watch app version it installs.
-- **Releases are built by CI.** A release's PBW is built by this
-  repository's CI from the tagged source and attached to the GitHub release;
-  Gravel pins its digest and downloads it from there.
+- **Releases are built by the maintainer and checked by CI.** The maintainer
+  builds the release PBW and tags its commit with a tag whose message gives
+  the PBW's SHA-256, signed with a touch on an Ed25519 security key listed
+  in `tools/allowed_signers`, then attaches that PBW to the GitHub release. The
+  Release check workflow rebuilds a pushed release tag with read-only access
+  and fails unless `tools/verify_release.sh` passes it, which includes
+  building the same file. Gravel pins the digest and downloads the PBW from
+  the release.
 - **Versions have two parts.** The version in `package.json` is MAJOR.MINOR,
   because the app binary records only those two (sdk-core 4.33.1
   `common/tools/generate_appinfo.py` `generate_appinfo_c` drops a third

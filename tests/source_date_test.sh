@@ -2,6 +2,7 @@
 # tools/build.sh stamps the PBW with SOURCE_DATE_EPOCH or the commit's committer time, takes values from 315532800
 # to 2147483647, and refuses anything else before downloading.
 set -eu
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 cd "$(dirname "$0")/.."
 root=$(pwd -P)
 work=$root/build-test/source_date_test

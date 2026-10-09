@@ -1,0 +1,21 @@
+name: Release check
+
+on:
+  push:
+    tags: ['**']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # For a tag push this checkout version fetches the annotated tag object, which tools/verify_release.sh reads
+      # (actions/checkout v7.0.1 src/ref-helper.ts getRefSpec).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Rebuild and compare with the tag
+        run: tools/verify_release.sh "$GITHUB_REF_NAME"

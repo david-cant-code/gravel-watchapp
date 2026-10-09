@@ -14,6 +14,7 @@ test: build-test/host/flow_test
 	tests/source_date_test.sh
 	tests/build_env_test.sh
 	tests/repro_test.sh
+	tests/verify_release_test.sh
 
 build-test/host/flow_test: tests/flow_test.c src/c/flow.c src/c/flow.h
 	mkdir -p build-test/host
