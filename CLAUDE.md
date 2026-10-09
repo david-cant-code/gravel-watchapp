@@ -14,6 +14,11 @@ it.
 - **Releases are built by CI.** A release's PBW is built by this
   repository's CI from the tagged source and attached to the GitHub release;
   Gravel pins its digest and downloads it from there.
+- **Versions have two parts.** The version in `package.json` is MAJOR.MINOR,
+  because the app binary records only those two (sdk-core 4.33.1
+  `common/tools/generate_appinfo.py` `generate_appinfo_c` drops a third
+  part), and a release's tag is that same string, so it names the version
+  recorded in the app binary.
 - **Builds go through `tools/build.sh`.** It pins the Pebble SDK, the
   compiler and the build's Python packages by digest; a change to any of
   them updates the pin and, where the reason is not "current stable",
