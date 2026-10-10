@@ -67,3 +67,8 @@ from elsewhere.
 ## License
 
 GPLv3; see [LICENSE](LICENSE).
+
+The app icon is drawn from the outline of the Edit Note icon in Compose
+Material Icons (`androidx.compose.material:material-icons-extended` 1.7.8,
+The Android Open Source Project), which is under the
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
