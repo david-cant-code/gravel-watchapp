@@ -52,6 +52,35 @@ bool flow_back_leaves(const FlowCancel *cancel) {
   return !cancel->holding;
 }
 
+bool flow_may_ping(const FlowPing *ping, const FlowCancel *cancel) {
+  return !ping->in_flight && !cancel->in_flight;
+}
+
+void flow_ping_sent(FlowPing *ping) {
+  ping->in_flight = true;
+}
+
+bool flow_cancel_waits_for_ping(FlowPing *ping) {
+  if (ping->in_flight) {
+    ping->cancel_waiting = true;
+  }
+  return ping->in_flight;
+}
+
+bool flow_ping_settled(FlowPing *ping) {
+  bool send_cancel = ping->cancel_waiting;
+  ping->in_flight = false;
+  ping->cancel_waiting = false;
+  return send_cancel;
+}
+
+FlowSettled flow_outbox_settled(FlowPing *ping) {
+  if (!ping->in_flight) {
+    return FLOW_SETTLED_CANCEL;
+  }
+  return flow_ping_settled(ping) ? FLOW_SETTLED_PING_SEND_CANCEL : FLOW_SETTLED_PING;
+}
+
 uint32_t flow_show_ms(const char *text) {
   size_t chars = 0;
   for (const char *c = text; c && *c; c++) {

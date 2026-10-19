@@ -31,6 +31,7 @@ static AppTimer *s_leave_timer;
 static AppTimer *s_autostart_timer;
 static AppTimer *s_cancel_timer;
 static FlowCancel s_cancel;
+static FlowPing s_ping;
 // Quick Launch records at once and closes the app when done; the app list opens the "+ Record new" menu.
 static bool s_quick_launch;
 
@@ -92,7 +93,6 @@ static void cancel_hold_fired(void *context) {
   }
 }
 
-// The cancel is the app's only outgoing message.
 static void cancel_settled(void) {
   if (s_cancel_timer) {
     app_timer_cancel(s_cancel_timer);
@@ -103,27 +103,51 @@ static void cancel_settled(void) {
   }
 }
 
-static void outbox_sent(DictionaryIterator *iterator, void *context) {
-  cancel_settled();
-}
-
-static void outbox_failed(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
-  cancel_settled();
-}
-
-// Tells Gravel to drop the recording; false when the message could not be queued, as without a phone.
-static bool send_cancel(void) {
+// False when the outbox is busy or closed; without a phone the send fails later, through outbox_failed (PebbleOS
+// v4.41.1, fw/applib/app_message/app_message_outbox.c, app_message_outbox_send).
+static bool send_message(uint32_t key) {
   DictionaryIterator *iterator;
   if (app_message_outbox_begin(&iterator) != APP_MSG_OK) {
     return false;
   }
-  dict_write_uint8(iterator, FLOW_CANCEL_KEY, 1);
+  dict_write_uint8(iterator, key, 1);
   return app_message_outbox_send() == APP_MSG_OK;
+}
+
+// Sending a message asks the firmware for the fast Bluetooth link for 10 s (PebbleOS v4.41.1,
+// fw/services/app_message/app_message_sender.c, prv_handle_outbox_message).
+static void send_ping(void) {
+  if (flow_may_ping(&s_ping, &s_cancel) && send_message(FLOW_PING_KEY)) {
+    flow_ping_sent(&s_ping);
+  }
+}
+
+static void outbox_settled(void) {
+  switch (flow_outbox_settled(&s_ping)) {
+    case FLOW_SETTLED_CANCEL:
+      cancel_settled();
+      break;
+    case FLOW_SETTLED_PING_SEND_CANCEL:
+      if (!send_message(FLOW_CANCEL_KEY)) {
+        cancel_settled();
+      }
+      break;
+    case FLOW_SETTLED_PING:
+      break;
+  }
+}
+
+static void outbox_sent(DictionaryIterator *iterator, void *context) {
+  outbox_settled();
+}
+
+static void outbox_failed(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
+  outbox_settled();
 }
 
 static void show_outcome(FlowOutcome outcome) {
   if (outcome.kind == FLOW_CANCELLED) {
-    if (!send_cancel()) {
+    if (!flow_cancel_waits_for_ping(&s_ping) && !send_message(FLOW_CANCEL_KEY)) {
       leave_status();
       return;
     }
@@ -149,6 +173,10 @@ static void show_outcome(FlowOutcome outcome) {
 static void dictation_done(DictationSession *session, DictationSessionStatus status, char *transcription,
                            void *context) {
   show_outcome(flow_outcome(status, transcription, connection_service_peek_pebble_app_connection()));
+  // The menu stays open for another recording.
+  if (!s_quick_launch) {
+    send_ping();
+  }
 }
 
 static void start_recording(void) {
@@ -242,6 +270,8 @@ int main(void) {
   app_message_register_outbox_sent(outbox_sent);
   app_message_register_outbox_failed(outbox_failed);
   app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
+  // First thing, so the switch to the fast link is under way before the first recording starts.
+  send_ping();
 
   s_status_window = window_create();
   window_set_click_config_provider(s_status_window, status_click_config);

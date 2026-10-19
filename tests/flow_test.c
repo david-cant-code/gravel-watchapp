@@ -47,6 +47,63 @@ static void test_a_cancel_blocks_recording_until_it_settles_and_holds_back_until
   CHECK(!flow_cancel_hold_over(&cancel));
 }
 
+static void test_one_message_is_out_at_a_time(void) {
+  FlowPing ping = {0};
+  FlowCancel cancel = {0};
+  CHECK(flow_may_ping(&ping, &cancel));
+
+  flow_ping_sent(&ping);
+  CHECK(!flow_may_ping(&ping, &cancel));
+  CHECK(flow_may_record(&cancel));
+  CHECK(!flow_ping_settled(&ping));
+  CHECK(flow_may_ping(&ping, &cancel));
+
+  flow_cancel_sent(&cancel);
+  CHECK(!flow_may_ping(&ping, &cancel));
+  flow_cancel_settled(&cancel);
+  CHECK(flow_may_ping(&ping, &cancel));
+}
+
+static void test_a_cancel_without_a_ping_out_goes_at_once(void) {
+  FlowPing ping = {0};
+  CHECK(!flow_cancel_waits_for_ping(&ping));
+  CHECK(!flow_ping_settled(&ping));
+}
+
+static void test_a_cancel_asked_for_while_a_ping_is_out_goes_once_the_ping_settles(void) {
+  FlowPing ping = {0};
+  FlowCancel cancel = {0};
+  flow_ping_sent(&ping);
+
+  CHECK(flow_cancel_waits_for_ping(&ping));
+  flow_cancel_sent(&cancel);
+  CHECK(!flow_may_record(&cancel));
+  CHECK(!flow_may_ping(&ping, &cancel));
+
+  CHECK(flow_ping_settled(&ping));
+  CHECK(!flow_may_record(&cancel));
+  CHECK(!flow_may_ping(&ping, &cancel));
+  CHECK(!flow_ping_settled(&ping));
+
+  CHECK(flow_cancel_settled(&cancel));
+  CHECK(flow_may_record(&cancel));
+  CHECK(flow_may_ping(&ping, &cancel));
+}
+
+static void test_a_settled_message_is_the_ping_while_one_is_out(void) {
+  FlowPing ping = {0};
+  CHECK(flow_outbox_settled(&ping) == FLOW_SETTLED_CANCEL);
+
+  flow_ping_sent(&ping);
+  CHECK(flow_outbox_settled(&ping) == FLOW_SETTLED_PING);
+  CHECK(flow_outbox_settled(&ping) == FLOW_SETTLED_CANCEL);
+
+  flow_ping_sent(&ping);
+  CHECK(flow_cancel_waits_for_ping(&ping));
+  CHECK(flow_outbox_settled(&ping) == FLOW_SETTLED_PING_SEND_CANCEL);
+  CHECK(flow_outbox_settled(&ping) == FLOW_SETTLED_CANCEL);
+}
+
 static void test_success_shows_the_phone_text(void) {
   CHECK_TEXT(flow_outcome(FLOW_STATUS_SUCCESS, "Saved", true), "Saved");
   CHECK_TEXT(flow_outcome(FLOW_STATUS_SUCCESS, "Couldn't save: too many recordings waiting", true),
@@ -170,6 +227,10 @@ int main(void) {
   test_success_and_cancel_do_not_depend_on_the_phone_connection();
   test_leaving_closes_after_quick_launch_and_returns_to_the_menu_otherwise();
   test_a_cancel_blocks_recording_until_it_settles_and_holds_back_until_the_hold_ends();
+  test_one_message_is_out_at_a_time();
+  test_a_cancel_without_a_ping_out_goes_at_once();
+  test_a_cancel_asked_for_while_a_ping_is_out_goes_once_the_ping_settles();
+  test_a_settled_message_is_the_ping_while_one_is_out();
   test_copy_keeps_short_text_whole();
   test_copy_cuts_ascii_at_the_buffer_size();
   test_copy_never_ends_inside_a_utf8_character();
